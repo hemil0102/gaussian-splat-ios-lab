@@ -89,7 +89,12 @@ gaussian-splat-ios-lab/
 
 **단계 설명서는 `Docs/` 에 두고 파일명을 `.swift` 와 똑같이 맞춥니다** — `Steps/Step01_OneSplat.swift` ↔ `Docs/Step01_OneSplat.md`.
 
-⚠️ **`Docs/` 는 반드시 저장소 루트입니다.** `gaussian-splat-ios-lab/` 안에 넣으면 file-system synchronized group 이라 앱 번들로 복사됩니다. Xcode 에서 보려면 **Target Membership 을 체크하지 않은 폴더 참조**로만 추가하세요.
+⚠️ **`Docs/` 는 반드시 저장소 루트입니다.** `gaussian-splat-ios-lab/` 안에 넣으면 file-system synchronized group 이라 앱 번들로 복사됩니다. **실제로 한 번 그렇게 됐습니다 (2026-09-03).**
+
+Xcode 에서 문서를 보는 방법은 둘입니다.
+
+- **가장 안전 — 프로젝트에 아예 안 넣기.** Xcode 의 **File ▸ Open** 으로 `.md` 를 열면 별도 창으로 뜹니다. 코드 창 옆에 놓으면 끝
+- **넣으려면** — 끌어다 놓을 때 대화상자의 **`Action` 을 `Reference files in place` 로** 바꾸고(`Copy files to destination` 이 기본값입니다), **`Targets` 체크는 끈 채로** 둡니다. 놓는 위치는 앱 폴더 그룹이 아니라 **맨 위 파란 프로젝트 아이콘**
 
 **코드 작성 시 유의점**
 
