@@ -25,6 +25,9 @@
 
 // 코드 작성: import 세 줄 (SwiftUI · RealityKit · Metal)
 
+import SwiftUI
+import RealityKit
+import Metal
 
 /// 0단계 화면. RealityKit 이 뜨는지 확인하는 대조군.
 ///
@@ -32,32 +35,49 @@
 /// 3단계에서 스플랫이 안 보일 때 «렌더링은 되고 있다» 는 근거가 된다.
 // 코드 작성: struct Step00_Baseline: View
 
-
-    /// 이 기기의 GPU 패밀리 확인 결과를 담는 한 줄 문장.
-    ///
-    /// 스플랫에는 Apple7 패밀리 이상이 필요하다. 여기서 미리 확인해 두지 않으면
-    /// 3단계에서 «코드가 틀린 건지 기기가 안 되는 건지» 를 가릴 수 없다.
-    // 코드 작성: gpuNote
-
-
-    /// 화면. RealityView 를 깔고 그 위에 gpuNote 를 겹친다.
-    ///
-    /// RealityView 의 클로저 안에서 할 일은 둘이다 —
-    /// 카메라 모드를 정하는 것과, 큐브를 넣는 것.
-    // 코드 작성: body
-
-
+struct Step00_Baseline: View {
+    
+    var gpuNote : String {
+        checkGPUFamily() ? "apple7 패밀리를 지원합니다." : "apple7 패밀리를 지원하지 않아요."
+    }
+    
+    var body: some View {
+        
+        RealityView { content in
+            content.camera = .virtual
+            let box = makeCube()
+            content.add(box)
+        }
+        .overlay(alignment: .bottom) {
+            Text(gpuNote)
+        }
+    }
+    
     /// 흰 큐브 엔티티 하나를 만들어 돌려준다.
     ///
     /// 크기 감각은 ⭐️ 즉흥 실험에서 직접 찾는다.
     /// 여기서 정한 숫자가 3단계에서 첫 스플랫의 크기를 잡을 때 잣대가 된다.
     // 코드 작성: makeCube()
-
-
+    func makeCube() -> ModelEntity {
+        ModelEntity(
+            mesh: .generateBox(size: 0.1),
+            materials: [SimpleMaterial(color: .white, isMetallic: false)]
+        )
+    }
+    
     /// Apple7 패밀리 이상인지 확인해 화면에 띄울 문장을 만든다.
     ///
     /// Metal 의 기기 객체에게 «이 패밀리를 지원하느냐» 고 물으면 된다.
     // 코드 작성: checkGPUFamily()
+    func checkGPUFamily() -> Bool {
+        guard let device = MTLCreateSystemDefaultDevice() else {
+            return false
+        }
+        return device.supportsFamily(MTLGPUFamily.apple7)
+    }
+}
 
+#Preview {
+    Step00_Baseline()
+}
 
-// 코드 작성: struct 를 닫는 중괄호와 #Preview

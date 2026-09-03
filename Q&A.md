@@ -73,3 +73,133 @@
 
 **어디서 나왔나** — 저장소 개설 · 2026-09-02
 **근거** — [GaussianSplatResource](https://developer.apple.com/documentation/realitykit/gaussiansplatresource) Overview
+
+---
+
+## Q. `generateBox(size:)` 를 그대로 썼는데 에러가 납니다
+
+**A.** **`generateBox` 는 `MeshResource` 에 속한 «타입 메서드» 라서, 앞에 소속을 밝혀야 합니다.**
+
+```swift
+// ❌ 에러 — 이런 이름의 전역 함수는 없다
+mesh: generateBox(size: SIMD3(1, 1, 1))
+
+// ✅ 소속을 밝힌다
+mesh: MeshResource.generateBox(size: 0.1)
+
+// ✅ 또는 점만 — 파라미터 타입이 이미 MeshResource 라서 Swift 가 안다
+mesh: .generateBox(size: 0.1)
+```
+
+`MeshResource` 문서를 보면 이 함수가 **「Creating a box」 절 안**에 있습니다. 그 절에 있다는 것이 곧 «`MeshResource` 의 것» 이라는 뜻이에요. 문서에서 함수를 찾았을 때 **왼쪽 사이드바의 어느 타입 밑에 있는지**를 같이 보는 습관이 여기서 값을 합니다.
+
+**함께 걸릴 두 가지**
+
+1. **`SIMD3(1, 1, 1)` 은 스칼라 타입이 모호할 수 있습니다.** `generateBox(size:)` 에는 **`Float` 를 받는 것과 `SIMD3<Float>` 를 받는 것 둘**이 있어서, 세 변이 같은 정육면체면 `.generateBox(size: 0.1)` 한 줄이 제일 깔끔합니다. 굳이 벡터로 쓰려면 `SIMD3<Float>(0.1, 0.1, 0.1)` 처럼 스칼라 타입을 적어 주세요.
+2. **RealityKit 의 길이 단위는 «미터» 입니다.** `1` 은 **한 변이 1미터인 상자**예요. 화면을 꽉 채우다 못해 카메라가 상자 «안» 에 들어가 버려서, 흔히 «아무것도 안 보인다» 로 나타납니다. `0.1`(10cm) 근처에서 시작하세요.
+
+> **비유** — 「`generateBox`」 는 전화번호부의 «영업팀 김민수» 같은 것입니다. 회사 이름 없이 「김민수 바꿔 주세요」 하면 교환원이 누군지 모릅니다.
+> **깨지는 곳** — 다만 Swift 는 **문맥으로 회사를 추론**합니다. 「`mesh:` 자리에는 `MeshResource` 만 올 수 있다」 는 걸 알기 때문에 `.generateBox` 처럼 점만 찍어도 통합니다. 사람 교환원보다 똑똑한 셈이죠.
+
+**어디서 나왔나** — 0단계 · 2026-09-03
+**근거** — [MeshResource](https://developer.apple.com/documentation/realitykit/meshresource) · [generateBox(size:cornerRadius:)](https://developer.apple.com/documentation/realitykit/meshresource/generatebox(size:cornerradius:)-8em0v)
+
+---
+
+## Q. `materials:` 에 `SimpleMaterial(...)` 을 넣었는데 에러가 납니다
+
+**A.** **`materials` 는 «재질 하나» 가 아니라 «재질 배열» 을 받습니다.** 대괄호로 감싸면 됩니다.
+
+```swift
+// ❌ 하나만 줌
+materials: SimpleMaterial(color: .white, isMetallic: false)
+
+// ✅ 배열로
+materials: [SimpleMaterial(color: .white, isMetallic: false)]
+```
+
+Xcode 가 처음 채워 준 자리 표시가 이미 알려 주고 있었습니다 — `<#T##[any Material]#>`. **바깥의 대괄호 `[ ]` 가 «배열» 이라는 뜻**입니다. 자리 표시의 `T##` 뒤에 오는 것이 그 자리가 요구하는 타입이에요.
+
+**왜 배열인가** — 메시 하나가 **여러 부분으로 나뉘어 각각 다른 재질**을 가질 수 있기 때문입니다. `generateBox(width:height:depth:cornerRadius:splitFaces:)` 에서 `splitFaces` 를 켜면 상자의 여섯 면에 서로 다른 재질을 줄 수 있어요. 그 메시가 재질을 몇 개 원하는지는 [`expectedMaterialCount`](https://developer.apple.com/documentation/realitykit/meshresource/expectedmaterialcount) 가 알려 줍니다. 하나만 주면 모든 부분에 그것이 쓰입니다.
+
+> **읽는 요령** — 앞으로 자리 표시(`<#T##…#>`)가 보이면 **`T##` 뒤의 글자를 그대로 타입으로 읽으세요.** `[any Material]` 은 「Material 을 따르는 아무 타입이나 담은 **배열**」 입니다.
+
+**어디서 나왔나** — 0단계 · 2026-09-03
+**근거** — [ModelEntity(mesh:materials:)](https://developer.apple.com/documentation/realitykit/modelentity/init(mesh:materials:)) · [MeshResource.expectedMaterialCount](https://developer.apple.com/documentation/realitykit/meshresource/expectedmaterialcount)
+
+---
+
+## Q. 조명을 안 넣었는데 흰 큐브가 그냥 보입니다. 조명은 어떻게 확인하나요?
+
+**A.** **AI 의 예고가 빗나갔습니다.** 「조명이 없으면 안 보이거나 새까맣다」 고 적었는데, 실제로는 **잘 보입니다.**
+
+`RealityView` 를 AR 아닌 모드(`content.camera = .virtual`)로 쓰면 **RealityKit 이 기본 조명 환경을 하나 깔아 줍니다.** 조명 엔티티를 단 하나도 안 넣어도 씬은 이미 밝습니다. 그래서 `SimpleMaterial` 이 «빛을 받는 재질» 이라는 사실이 **«보인다 / 안 보인다» 로는 드러나지 않습니다.**
+
+### 그럼 어떻게 확인하나
+
+**흰 배경에 흰 큐브로는 아무것도 안 보입니다.** 두 가지를 바꿔야 차이가 드러납니다.
+
+1. **색을 흰색이 아닌 것으로** — `.red` 처럼
+2. **큐브를 살짝 돌려 두 면 이상이 보이게** — `box.orientation` 을 만지면 됩니다
+
+그 상태에서 **면마다 밝기가 다른지** 보세요. 다르면 빛이 닿고 있다는 뜻입니다.
+
+그리고 재질만 한 줄 바꿔 비교합니다.
+
+| 재질 | 보이는 모습 |
+|---|---|
+| `SimpleMaterial(color: .red, isMetallic: false)` | 면마다 밝기가 다름. **«상자» 로 보임** |
+| `UnlitMaterial(color: .red)` | 전부 같은 빨강. **«빨간 육각형» 으로 보임** |
+
+**그 차이가 «빛을 받는다» 의 정체입니다.**
+
+> **비유** — 흰 종이에 흰 크레용으로 그린 것과 같습니다. 크레용이 안 나오는 게 아니라 **배경과 구별이 안 되는** 것이죠.
+> **깨지는 곳** — 크레용은 색만 문제지만 여기서는 «면마다 밝기가 다른가» 라는 정보가 통째로 사라집니다. 흰색은 명암이 가장 안 읽히는 색입니다.
+
+### 왜 이게 중요한가
+
+**11단계의 예고편이기 때문입니다.** 스플랫은 `UnlitMaterial` 쪽에 가깝습니다 — 색이 **촬영 당시 조명 그대로 구워져** 있어서, 씬의 조명을 아무리 올려도 미동도 하지 않습니다. Apple 문서가 그렇게 못 박고 있어요.
+
+> Important: Scene lighting doesn't affect a Gaussian splat asset. The color of the rendered output reflects the lighting conditions present during the original capture.
+
+지금 이 두 큐브의 차이를 눈에 익혀 두면, 11단계에서 「왜 스플랫만 안 변하지」 가 이미 아는 이야기가 됩니다.
+
+**어디서 나왔나** — 0단계 · 2026-09-03
+**근거** — [SimpleMaterial](https://developer.apple.com/documentation/realitykit/simplematerial) (*"A basic material that responds to lights in the scene"*) · [UnlitMaterial](https://developer.apple.com/documentation/realitykit/unlitmaterial) · [GaussianSplatComponent](https://developer.apple.com/documentation/realitykit/gaussiansplatcomponent)
+
+---
+
+## Q. 왜 스플랫에 Apple7 GPU 패밀리 이상이 필요한가
+
+**A. Apple 은 «필요하다» 고만 적고 «왜» 는 안 적었습니다.** 문서 전체를 뒤졌지만 이유를 못 찾았습니다. 그래서 여기서는 **확인된 것**과 **추론**을 나눠 적습니다.
+
+### 확인된 것 (문서)
+
+| 사실 | 출처 |
+|---|---|
+| *"Gaussian splats require a device with Apple7 GPU family support."* | [GaussianSplatComponent](https://developer.apple.com/documentation/realitykit/gaussiansplatcomponent) |
+| Apple7 = **Apple A14 와 M1 GPU** | [MTLGPUFamily.apple7](https://developer.apple.com/documentation/metal/mtlgpufamily/apple7) |
+| 그래서 실질적으로 **iPhone 12 이상**, **M1 이상 맥** | 위 둘의 조합 |
+| 어느 «기능» 이 결정적인지 | **문서에 없음. 못 찾았습니다** |
+
+### 추론 — 스플랫 렌더링이 «보통 그리기» 가 아니기 때문
+
+⚠️ **아래는 확인된 사실이 아니라 정황에서 세운 추론입니다.**
+
+메시 하나를 그리는 것과 스플랫 수십만 개를 그리는 것은 GPU 가 하는 일의 «종류» 가 다릅니다. 원 논문([Kerbl et al. 2023](https://ar5iv.labs.arxiv.org/html/2308.04079))이 밝힌 렌더러 구조가 이렇습니다.
+
+1. **매 프레임 전체 정렬** — 모든 스플랫을 «깊이 + 타일 번호» 키로 **GPU 라딕스 정렬**. 반투명한 것은 뒤에서 앞으로 겹쳐야 색이 맞기 때문
+2. **화면을 16×16 타일로 쪼개 담기** — 스플랫 하나가 여러 타일에 걸치면 그만큼 복제
+3. **타일마다 스레드 블록 하나** — 스플랫 묶음을 **공유 메모리**에 같이 올려 놓고 블렌딩
+4. **알파가 포화되면 조기 종료** — 스레드들이 주기적으로 서로 물어봄
+
+즉 **매 프레임 돌아가는 대규모 컴퓨트 파이프라인**입니다. 삼각형을 던지는 일이 아니에요. Apple7(A14·M1)은 Apple GPU 의 컴퓨트 능력과 메모리 대역폭이 크게 올라간 세대이고, **Apple 이 «이 아래로는 실용적인 프레임이 안 나온다» 고 그은 선일 가능성이 큽니다.**
+
+> **하지만 이건 «가능성이 크다» 이지 «그렇다» 가 아닙니다.** 특정 Metal 기능(원자적 연산·SIMD 그룹 연산·타일 메모리 중 무엇)이 하한선을 정했는지는 확인하지 못했습니다.
+
+### 실무에서 뭘 하면 되나
+
+**0단계에서 만든 `checkGPUFamily()` 가 그 답입니다.** 이유를 몰라도 **기기가 되는지 안 되는지는 코드로 물어볼 수 있습니다.** 3단계에서 아무것도 안 보일 때, 이 한 줄이 «내 코드가 틀렸나 / 기기가 안 되나» 를 갈라 줍니다.
+
+**어디서 나왔나** — 0단계 완료 직후 · 2026-09-03
+**근거** — [GaussianSplatComponent](https://developer.apple.com/documentation/realitykit/gaussiansplatcomponent) · [MTLGPUFamily](https://developer.apple.com/documentation/metal/mtlgpufamily) · [3D Gaussian Splatting for Real-Time Radiance Field Rendering (Kerbl et al. 2023)](https://ar5iv.labs.arxiv.org/html/2308.04079)
