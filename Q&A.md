@@ -203,3 +203,100 @@ Xcode 가 처음 채워 준 자리 표시가 이미 알려 주고 있었습니�
 
 **어디서 나왔나** — 0단계 완료 직후 · 2026-09-03
 **근거** — [GaussianSplatComponent](https://developer.apple.com/documentation/realitykit/gaussiansplatcomponent) · [MTLGPUFamily](https://developer.apple.com/documentation/metal/mtlgpufamily) · [3D Gaussian Splatting for Real-Time Radiance Field Rendering (Kerbl et al. 2023)](https://ar5iv.labs.arxiv.org/html/2308.04079)
+
+---
+
+## Q. 구조체에 담아 스플랫을 표현하는 게 «맞는» 방법인가? Metal 로 직접 만들 수도 있나?
+
+**A.** **이 구조체는 «맞는 표현» 이 아니라 «학습용 발판» 입니다.** RealityKit 은 `Splat` 구조체를 본 적이 없고 앞으로도 못 봅니다. RealityKit 이 아는 것은 **날것의 float 덩어리와 `BufferDescriptor`** 뿐입니다.
+
+### 층이 셋
+
+```
+① 파일 (PLY)          디스크에 저장된 형태 · 필드 62개
+        ↓
+② 구조체 Splat         사람이 읽기 위한 형태 · 80바이트   ← 선택 사항
+        ↓
+③ GPU 버퍼            실제로 그려지는 형태 · 56바이트
+```
+
+**②는 없어도 됩니다.** ① → ③ 직행이 가능하고 **실무에서는 대개 그렇게 합니다.** 스플랫 50만 개를 `[Splat]` 로 만들면 `80 × 50만 = 40MB` 를 만들었다가 버퍼로 옮기며 `56 × 50만 = 28MB` 를 또 만듭니다. 68MB 를 쓰고 40MB 를 버리는 셈입니다.
+
+**그래서 9단계쯤에서 이 구조체를 버릴 가능성이 큽니다.** 지금 만드는 것이 영원히 남는 설계가 아닙니다.
+
+### 그럼 왜 지금 만드나
+
+**«내가 정한 배치» 와 «GPU 가 원하는 배치» 가 다르다는 것을 몸으로 알려면 둘 다 있어야 하기 때문입니다.** ②를 건너뛰면 코드는 짧아지지만 `stride`·`offset`·정렬이 **왜** 그렇게 생겼는지 알 기회가 사라집니다. 3단계까지는 스플랫이 한 개~열 개라 성능이 문제가 안 되니, 그 구간을 배우는 데 씁니다.
+
+### Metal 로 직접 — 됩니다
+
+`GaussianSplatComponent` 는 RealityKit 이 주는 **한 가지 길**일 뿐이고 그 아래는 결국 Metal 입니다.
+
+| | RealityKit (이 저장소) | Metal 직접 |
+|---|---|---|
+| 매 프레임 정렬 | **프레임워크가 함** | 컴퓨트 셰이더로 직접 |
+| 블렌딩 순서 | 함 | 직접 |
+| 셰이더 | **못 만짐** | 마음대로 |
+| 코드량 | 수십 줄 | 수천 줄 |
+
+[MetalSplatter](https://github.com/scier/MetalSplatter) 가 그 «Metal 직접» 구현입니다. Apple 이 스플랫 API 를 내기 전부터 있던 오픈소스예요. 이 저장소는 **파서(`SplatIO`)만** 빌려 쓰고 렌더링은 RealityKit 에 맡깁니다.
+
+**WebGPU·Unity·Unreal·Vulkan 도 다 됩니다.** 데이터는 그냥 숫자이고, 다른 것은 **«누가 정렬하고 누가 블렌딩하느냐»** 뿐입니다.
+
+**어디서 나왔나** — 1단계 타이핑 직전 · 2026-09-03
+**근거** — [GaussianSplatComponent](https://developer.apple.com/documentation/realitykit/gaussiansplatcomponent) (*"you parse your source format ... and populate the buffers yourself"*) · [MetalSplatter](https://github.com/scier/MetalSplatter)
+
+---
+
+## Q. `simd_quatf` 를 썼는데 «그런 타입 없음» 이라고 나옵니다
+
+**A.** **`import simd` 가 빠진 것입니다.**
+
+같은 파일에서 `SIMD3<Float>` 는 잘 되는데 `simd_quatf` 만 안 되는 것이 헷갈리는 지점입니다. **둘의 출신이 다릅니다.**
+
+| 타입 | 어디 것 | import |
+|---|---|---|
+| `SIMD3<Float>` · `SIMD4<Float>` | **Swift 표준 라이브러리** | 필요 없음 |
+| `simd_quatf` · `simd_float4x4` | **`simd` 모듈** | `import simd` |
+
+이름이 `SIMD` 로 시작하느냐 `simd_` 로 시작하느냐가 대충의 구분선입니다 — 앞의 것은 Swift 가 직접 만든 타입이고, 뒤의 것은 **C 의 simd 라이브러리를 Swift 로 끌어온 것**입니다. `simd_quatf` 의 이니셜라이저가 `init(ix:iy:iz:r:)` 처럼 C 스러운 것도 그 때문이고요.
+
+**어디서 나왔나** — 1단계 · 2026-09-03
+**근거** — [simd_quatf](https://developer.apple.com/documentation/simd/simd_quatf) · [SIMD3](https://developer.apple.com/documentation/swift/simd3)
+
+---
+
+## Q. `row(_:_:)` 를 제네릭으로 만들어 Float 와 Int 를 둘 다 받게 할 수 있나?
+
+**A.** **됩니다. 그런데 «되는 것» 과 «이득인 것» 이 다릅니다.**
+
+```swift
+func row<V: Numeric>(_ name: String, _ value: V) -> some View {
+    ...
+    Text(String(format: "%.3f", value))   // ← 여기서 막힌다
+}
+```
+
+`Float` 과 `Int` 는 둘 다 `Numeric` 이라 **매개변수는 잘 묶입니다.** 문제는 **함수 «안» 에서 할 수 있는 일**입니다.
+
+- `"%.3f"` 는 **부동소수점용** 형식입니다. `Int` 를 넣으면 쓰레기 값이 나오고 경고도 안 뜹니다
+- `Int` 에 맞추려면 `"%d"` 인데 그럼 `Float` 이 깨집니다
+- **그리고 애초에 둘은 다르게 보여야 합니다** — `0.100` 과 `80` 이요. 크기 표에 `80.000` 이 뜨면 이상합니다
+
+> **제네릭은 «타입을 묶는» 도구지 «표현을 묶는» 도구가 아닙니다.** 화면에 다르게 보여야 하는 둘을 억지로 묶으면 함수 안에서 다시 갈라야 해서 이득이 없습니다. [RULES 규칙 11](RULES.md#규칙-11의-의미) 의 «적용하지 않는 자리» 에 있는 그 상황입니다.
+
+### 골랐던 것 — 값을 «문자열로» 받기
+
+```swift
+func row(_ name: String, _ value: String) -> some View
+```
+
+이유 셋.
+
+1. **포맷을 부르는 쪽이 정합니다** — Float 은 `%.3f`, Int 는 `"\(n)"`, 나중엔 `"56 → 80 (+24)"` 같은 계산된 문자열도 그대로 들어갑니다
+2. **2단계에서 값을 합니다** — 거기서는 «넣은 값 vs 꺼낸 값» 을 한 줄에 나란히 적게 됩니다
+3. 함수는 «가로로 배치하는 일» 만 하게 됩니다. 숫자를 어떻게 보여줄지는 그 함수가 알 바가 아닙니다 — **[SRP]**
+
+**대안이었던 것** — 오버로드 둘(`row(_:_: Float)` · `row(_:_: Int)`)도 나쁘지 않습니다. 부르는 쪽이 제일 짧아지는 대신 배치 코드가 두 벌이 됩니다.
+
+**어디서 나왔나** — 1단계 · 2026-09-03

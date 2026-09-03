@@ -25,46 +25,56 @@
 //  📖 자세한 설명 → Docs/Step01_SplatAsNumbers.md
 //  ─────────────────────────────────────────────────────────────────────
 
-// 코드 작성: import 두 줄
-
+import SwiftUI
+import simd
 
 /// 1단계 화면. 스플랫 하나의 값과 크기를 표로 보여 준다.
 // 코드 작성: struct Step01_SplatAsNumbers: View
+struct Step01_SplatAsNumbers: View {
+    
+    let splat = Splat(position: SIMD3(1, 1, 1), scale: SIMD3(1, 1, 1), rotation: simd_quatf(ix: 1, iy: 1, iz: 1, r: 0.5), opacity: 0.5, sh: SIMD3(1, 1, 1))
+    
+    var body: some View {
+        List {
+            Section("position · scale · rotation") {
+                row("position.x", String(format: "%.3f", splat.position.x))
+                row("position.y", String(format: "%.3f", splat.position.y))
+                row("position.z", String(format: "%.3f", splat.position.z))
+                row("scale.x", String(format: "%.3f", splat.scale.x))
+                row("scale.y", String(format: "%.3f", splat.scale.y))
+                row("scale.z", String(format: "%.3f", splat.scale.z))
+                row("rotation.w", String(format: "%.3f", splat.rotation.vector.w))
+                row("rotation.x", String(format: "%.3f", splat.rotation.vector.x))
+                row("rotation.y", String(format: "%.3f", splat.rotation.vector.y))
+                row("rotation.z", String(format: "%.3f", splat.rotation.vector.z))
+                row("opacity", String(format: "%.3f", splat.opacity))
+            }
 
+            Section("quaternionOrder") {
+                row("sh.x", String(format: "%.3f", splat.sh.x))
+                row("sh.y", String(format: "%.3f", splat.sh.y))
+                row("sh.z", String(format: "%.3f", splat.sh.z))
 
-    /// 화면에 찍을 스플랫 하나.
-    // 코드 작성: splat
+            }
 
-
-    /// 화면. List 안에 Section 셋.
-    // 코드 작성: body
-
-
-    /// 값 열넷을 이름·값·개수로 보여 주는 Section.
-    ///
-    /// position 3 · scale 3 · rotation 4 · opacity 1 · sh 3 = 14
-    // 코드 작성: valueRows
-
-
-    /// rotation 이 «메모리에 어떤 순서로» 담겨 있는지 보여 주는 Section.
-    ///
-    /// simd_quatf 의 vector 속성을 꺼내 네 값을 그대로 찍으면 된다.
-    /// 만들 때 넣은 값과 찍힌 순서를 비교하는 것이 목적이다.
-    // 코드 작성: quaternionOrder
-
-
-    /// 크기를 재서 비교하는 Section.
-    ///
-    /// 손으로 센 것 : Float 14개 × 4바이트 = 56
-    /// 기계가 잰 것 : MemoryLayout<Splat> 의 size · stride · alignment
-    /// 둘이 다르면 그 차이가 이 단계의 수확이다.
-    // 코드 작성: sizeRows
-
-
-    /// 「이름 ─── 값」 한 줄을 그리는 도우미.
-    ///
-    /// 같은 모양이 열몇 번 반복되므로 한 곳에 모아 둔다. [SRP]
-    // 코드 작성: row(_:_:)
-
+            Section("sizeRows") {
+                row("size", "\(MemoryLayout<Splat>.size)")
+                row("stride", "\(MemoryLayout<Splat>.stride)")
+                row("alignment", "\(MemoryLayout<Splat>.alignment)")
+            }
+        }
+    }
+    
+    func row(_ name: String, _ value: String) -> some View {
+        HStack {
+            Text(name)
+            Spacer()
+            Text(value)
+        }
+    }
+}
 
 // 코드 작성: struct 를 닫는 중괄호와 #Preview
+#Preview {
+    Step01_SplatAsNumbers()
+}
