@@ -1,0 +1,41 @@
+# macOS
+.DS_Store
+
+# Xcode
+build/
+DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# 스플랫 파일 — 수백 MB 입니다. 커밋하지 않습니다.
+# 어떤 파일을 어떻게 준비하는지는 README 의 「스플랫 소재 준비」에.
+*.ply
+*.spz
+*.splat
+*.sog
+GaussianSplatLab/Resources/Splats/
+
+# 촬영 원본
+*.mov
+*.MOV
+
+# 이 폴더는 커밋하지 않습니다 (AI 가 폴더 안에서 파일을 지울 수 없어 임시로 모아 두는 곳)
+_to_delete/
