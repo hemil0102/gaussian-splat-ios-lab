@@ -29,7 +29,6 @@ import SwiftUI
 import simd
 
 /// 1단계 화면. 스플랫 하나의 값과 크기를 표로 보여 준다.
-// 코드 작성: struct Step01_SplatAsNumbers: View
 struct Step01_SplatAsNumbers: View {
     
     let splat = Splat(position: SIMD3(1, 1, 1), scale: SIMD3(1, 1, 1), rotation: simd_quatf(ix: 1, iy: 1, iz: 1, r: 0.5), opacity: 0.5, sh: SIMD3(1, 1, 1))
@@ -50,7 +49,7 @@ struct Step01_SplatAsNumbers: View {
                 row("opacity", String(format: "%.3f", splat.opacity))
             }
 
-            Section("quaternionOrder") {
+            Section("spherical harmonics") {
                 row("sh.x", String(format: "%.3f", splat.sh.x))
                 row("sh.y", String(format: "%.3f", splat.sh.y))
                 row("sh.z", String(format: "%.3f", splat.sh.z))
@@ -74,7 +73,6 @@ struct Step01_SplatAsNumbers: View {
     }
 }
 
-// 코드 작성: struct 를 닫는 중괄호와 #Preview
 #Preview {
     Step01_SplatAsNumbers()
 }

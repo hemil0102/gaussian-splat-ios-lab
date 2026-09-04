@@ -23,7 +23,6 @@
 //  📖 자세한 설명 → Docs/Step00_Baseline.md
 //  ─────────────────────────────────────────────────────────────────────
 
-// 코드 작성: import 세 줄 (SwiftUI · RealityKit · Metal)
 
 import SwiftUI
 import RealityKit
@@ -31,10 +30,7 @@ import Metal
 
 /// 0단계 화면. RealityKit 이 뜨는지 확인하는 대조군.
 ///
-/// 스플랫은 나오지 않는다. 여기서 큐브가 보였다는 사실이
-/// 3단계에서 스플랫이 안 보일 때 «렌더링은 되고 있다» 는 근거가 된다.
-// 코드 작성: struct Step00_Baseline: View
-
+/// 여기서 큐브가 보였다는 사실이 3단계의 «렌더링은 되고 있다» 근거가 된다.
 struct Step00_Baseline: View {
     
     var gpuNote : String {
@@ -53,11 +49,7 @@ struct Step00_Baseline: View {
         }
     }
     
-    /// 흰 큐브 엔티티 하나를 만들어 돌려준다.
-    ///
-    /// 크기 감각은 ⭐️ 즉흥 실험에서 직접 찾는다.
-    /// 여기서 정한 숫자가 3단계에서 첫 스플랫의 크기를 잡을 때 잣대가 된다.
-    // 코드 작성: makeCube()
+    /// 흰 큐브 하나. 이 0.1m 가 3단계 첫 스플랫의 크기를 잡는 잣대가 됐다
     func makeCube() -> ModelEntity {
         ModelEntity(
             mesh: .generateBox(size: 0.1),
@@ -65,10 +57,7 @@ struct Step00_Baseline: View {
         )
     }
     
-    /// Apple7 패밀리 이상인지 확인해 화면에 띄울 문장을 만든다.
-    ///
-    /// Metal 의 기기 객체에게 «이 패밀리를 지원하느냐» 고 물으면 된다.
-    // 코드 작성: checkGPUFamily()
+    /// Apple7 패밀리 이상인가. 스플랫 렌더의 하한선이다 (A14 = iPhone 12)
     func checkGPUFamily() -> Bool {
         guard let device = MTLCreateSystemDefaultDevice() else {
             return false
@@ -80,4 +69,3 @@ struct Step00_Baseline: View {
 #Preview {
     Step00_Baseline()
 }
-

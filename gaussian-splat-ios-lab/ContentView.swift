@@ -18,6 +18,9 @@ struct ContentView: View {
                     NavigationLink("스플랫 하나를 «숫자로»") {
                        Step01_SplatAsNumbers()
                     }
+                    NavigationLink("버퍼에 넣고 다시 꺼내기") {
+                       Step02_BufferRoundTrip()
+                    }
                 }
             }
         }

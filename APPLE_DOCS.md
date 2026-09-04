@@ -60,6 +60,19 @@
 | 개수 상한이 있고 **`BufferResource` 초기화가 throw** 한다. 숫자는 비공개 | 같은 문서 Performance | 2026-09-02 |
 | 비용 = **개수 × 오버드로.** 줄이는 법 둘 — 학습 단계 pruning, 저불투명 컬링 | 같은 문서 | 2026-09-02 |
 | `BufferDescriptor` 의 **stride·offset 은 바이트 단위** | BufferDescriptor Overview | 2026-09-03 |
+| `LowLevelBuffer` 의 멤버는 **여섯뿐** — `Descriptor` · `init(descriptor:)` · `bytesUsed` · `withUnsafeBytes` · `withUnsafeMutableBytes` · `read`/`replace` | LowLevelBuffer 심볼 목록 | 2026-09-03 |
+| `Descriptor(capacity:sizeMultiple:)` — `capacity` 는 **바이트**, `sizeMultiple` 은 «bytesUsed 가 이 값의 배수여야 한다» | Descriptor 심볼 문서 | 2026-09-03 |
+| `LowLevelBuffer.init(descriptor:)` 는 **throws** | 심볼 선언 | 2026-09-03 |
+| `withUnsafeBytes`/`withUnsafeMutableBytes` 의 **클로저 반환 타입이 `Void`** — 표준 라이브러리 것과 달라 결과를 못 돌려받는다 | 심볼 선언 | 2026-09-03 |
+| 두 메서드의 포인터는 **클로저 수명 동안만 유효** ("only valid for the lifetime of the callback") | 같은 문서 Discussion | 2026-09-03 |
+| `bytesUsed` 는 `get set` — 쓴 만큼을 **직접 알려 준다** | 심볼 선언 | 2026-09-03 |
+| `BufferDescriptor(buffer:format:stride:offset:)` — `format` 이 **`MTLAttributeFormat`**(Metal 타입). `import Metal` 이 필요하다 | BufferDescriptor 심볼 | 2026-09-04 |
+| 「offset 에서 시작해 스플랫마다 stride 만큼 전진한다」 — 다섯 descriptor 가 **한 버퍼를 offset 만 달리해 공유**해도 된다 | BufferDescriptor·BufferResource Overview | 2026-09-04 |
+| `BufferResource(count:position:scale:rotation:opacity:sphericalHarmonics:)` **throws** — `sphericalHarmonics` 는 **(BufferDescriptor, SphericalHarmonicDegree) 튜플** | BufferResource 심볼 | 2026-09-04 |
+| `ActivationFunction` 은 셋 — **`.identity` · `.exponential` · `.sigmoid`** | ActivationFunction 심볼 | 2026-09-04 |
+| `SphericalHarmonicDegree` 넷 — `.zero`(3) · `.first`(12) · `.second`(27) · `.third`(48) 값 | SphericalHarmonicDegree 심볼 | 2026-09-04 |
+| `GaussianSplatResource(_ bufferResource:)` · `GaussianSplatComponent(_ resource:)` — 둘 다 인자 하나 | 각 심볼 | 2026-09-04 |
+| **버퍼를 참조만 하므로 `LowLevelBuffer` 내용을 바꾸면 애니메이션이 된다** (13단계의 근거) | GaussianSplatResource Overview | 2026-09-04 |
 | 리소스가 드는 옵션 넷 — **활성화 함수(스케일·불투명도) · 투영 모드 · 정렬 모드 · 색공간** | GaussianSplatResource Overview | 2026-09-02 |
 | **버퍼를 복사하지 않고 참조한다 → 내용을 갱신하면 애니메이션이 된다** | GaussianSplatResource Overview | 2026-09-02 |
 
