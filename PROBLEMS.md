@@ -10,6 +10,8 @@
 
 ## 목록
 
+**지금 비어 있습니다** — 3단계에서 올렸던 넷(P1~P4) 중 셋은 풀려 [Q&A.md](Q&A.md) 로 옮겼고, P1(개수 상한)은 7단계에서 실측할 예정이라 [PROGRESS](PROGRESS.md) 의 «열린 질문» 으로 옮겼습니다.
+
 | | 제목 | 상태 | 걸리는 단계 |
 |---|---|:---:|---|
 | P1 | [스플랫 개수 상한의 정확한 값을 모른다](#p1--스플랫-개수-상한의-정확한-값을-모른다) | 🟡 | 04 · 07 |
@@ -48,3 +50,5 @@
 ### 참고
 
 - [GaussianSplatComponent](https://developer.apple.com/documentation/realitykit/gaussiansplatcomponent) · Performance Considerations
+
+---

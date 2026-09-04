@@ -22,6 +22,12 @@ struct ContentView: View {
                        Step02_BufferRoundTrip()
                     }
                 }
+                
+                Section("첫 타원체") {
+                    NavigationLink("첫 스플랫을 그린다") {
+                        Step03_FirstSplat()
+                    }
+                }
             }
         }
     }

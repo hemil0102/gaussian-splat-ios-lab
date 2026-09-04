@@ -90,52 +90,76 @@ sphericalHarmonics: (어떤_descriptor, .zero)
 
 ## 2) `Steps/Step03_FirstSplat.swift`
 
+> **아래는 실제로 화면에 뜬 최종본입니다** (2026-09-04). 처음 초안에서 셋이 바뀌었습니다 —
+> ① 스플랫이 **하나 → 셋**(하나로는 안 그려짐, PROBLEMS P4)
+> ② `capacity` 를 **16의 배수로 올림**(안 그러면 초기화가 throw)
+> ③ 카메라가 `.spatialTracking`(`.virtual` 은 고정이라 시점을 못 바꿈)
+
 ```swift
 import SwiftUI
 import RealityKit
 import Metal
 import simd
+import UIKit
 
 struct Step03_FirstSplat: View {
 
-    /// 하나로 시작한다. 0단계 큐브가 0.1m 에서 보였으므로 그 언저리
+    /// 셋을 세 축으로 벌려 둔다 — 색·자리·깊이를 한 화면에서 가리려고
     let splats: [Splat] = [
-        Splat(position: SIMD3(0, 0, 0),
-              scale:    SIMD3(0.15, 0.05, 0.05),   // 한 축만 길게 → 타원인지 바로 보인다
-              rotation: simd_quatf(ix: 0, iy: 0, iz: 0, r: 1),   // 회전 없음
-              opacity:  1.0,
-              sh:       SIMD3(1.0, 0.4, 0.2))
+        Splat(position: SIMD3(-0.25, 0, 0), scale: SIMD3(0.16, 0.04, 0.04),
+              rotation: simd_quatf(ix: 0, iy: 0, iz: 0, r: 1),
+              opacity: 1.0, sh: SIMD3(2.0, -0.5, -0.5)),
+
+        Splat(position: SIMD3(0, 0.25, 0), scale: SIMD3(0.16, 0.04, 0.04),
+              rotation: simd_quatf(ix: 0, iy: 0, iz: 0, r: 1),
+              opacity: 1.0, sh: SIMD3(-0.5, 2.0, -0.5)),
+
+        Splat(position: SIMD3(0.25, 0, 0), scale: SIMD3(0.16, 0.04, 0.04),
+              rotation: simd_quatf(ix: 0, iy: 0, iz: 0, r: 1),
+              opacity: 1.0, sh: SIMD3(-0.5, -0.5, 2.0)),
     ]
 
     @State private var note = "준비 중"
 
+    /// `let` 이라 한 번만 계산된다 — 계산 프로퍼티면 그릴 때마다 MTLDevice 를 새로 만든다
+    let deviceNote: String = {
+        let device = MTLCreateSystemDefaultDevice()
+        let apple7 = device?.supportsFamily(.apple7) ?? false
+        return "\(device?.name ?? "GPU 없음") · apple7 \(apple7 ? "O" : "X") · iOS \(UIDevice.current.systemVersion)"
+    }()
+
     var body: some View {
         RealityView { content in
-            content.camera = .virtual
+            content.camera = .spatialTracking
             do {
                 content.add(try makeSplatEntity())
-                note = "스플랫 \(splats.count)개 · scale(0.15, 0.05, 0.05) · identity"
+                note = "스플랫 \(splats.count)개 · scale(0.16, 0.04, 0.04)"
             } catch {
-                note = "실패 — \(error)"
+                note = "실패 - \(error)"
             }
         }
         .overlay(alignment: .bottom) {
-            Text(note)
-                .font(.caption)
-                .padding(8)
-                .background(.black.opacity(0.5))
-                .foregroundStyle(.white)
+            // ⚠️ .overlay 의 내용물은 ZStack 이다 — 뷰를 둘 넣으면 겹친다
+            VStack(spacing: 2) {
+                Text(note)
+                Text(deviceNote)
+            }
+            .font(.caption)
+            .padding(8)
+            .background(.black.opacity(0.5))
+            .foregroundStyle(.white)
         }
     }
 
     func makeSplatEntity() throws -> Entity {
 
         // 1️⃣ 버퍼 — 2단계의 «쓰기» 와 똑같다. 읽는 쪽이 GPU 로 바뀌었을 뿐
-        let stride = SplatBufferLayout.bytesPerSplat      // 56
-        let total  = stride * splats.count
+        let stride = SplatBufferLayout.bytesPerSplat          // 56
+        let total  = stride * splats.count                    // 168
+        let capacity = (total + 15) & ~0xF                    // 176 — 16의 배수여야 한다
 
         let buffer = try LowLevelBuffer(
-            descriptor: .init(capacity: total, sizeMultiple: stride))
+            descriptor: .init(capacity: capacity, sizeMultiple: stride))
 
         buffer.withUnsafeMutableBytes { raw in
             for (index, splat) in splats.enumerated() {
@@ -162,13 +186,13 @@ struct Step03_FirstSplat: View {
             scale:    descriptor(.float3, SplatBufferLayout.scaleOffset),
             rotation: descriptor(.float4, SplatBufferLayout.rotationOffset),
             opacity:  descriptor(.float,  SplatBufferLayout.opacityOffset),
-            sphericalHarmonics: (descriptor(.float3, SplatBufferLayout.shOffset), .zero)
-        )
+            sphericalHarmonics: (descriptor(.float3, SplatBufferLayout.shOffset), .zero))
 
         // 4️⃣ 옵션 — 우리 값은 이미 최종값이라 되돌릴 것이 없다 (STUDY Q7)
-        var resource = GaussianSplatResource(bufferResource)
+        let resource = GaussianSplatResource(bufferResource)
         resource.scaleActivation   = .identity
         resource.opacityActivation = .identity
+        resource.projectionMode    = .tangential   // 눈에 띄는 차이는 못 봤음
 
         // 5️⃣ 엔티티에 달아 돌려준다
         let entity = Entity()
@@ -181,6 +205,17 @@ struct Step03_FirstSplat: View {
     Step03_FirstSplat()
 }
 ```
+
+### 버퍼 숫자 넷 — 무엇이 규약이고 무엇이 우리 사정인가
+
+| | 값 | 근거 |
+|---|---:|---|
+| `stride` | 56 | **우리 배치.** 화면으로 확인. Apple 예제의 60은 그쪽 PLY 사정 |
+| `capacity` | 176 | **규약.** 16의 배수가 아니면 초기화가 throw (문서에 없음) |
+| `sizeMultiple` | 56 | 우리 사정. 16이어야 하는 줄 알았으나 아니었음 |
+| `bytesUsed` | 168 | 우리 사정. 실제로 쓴 바이트 |
+
+**문서에서만 알 수 있던 규약은 `capacity` 하나뿐**이었습니다. 나머지 셋은 각자 정하면 됩니다.
 
 ## 3) `ContentView.swift`
 
@@ -214,7 +249,8 @@ Section("첫 타원체") {
 
 1. **뿌연 덩어리 하나**가 화면 가운데 보인다 — 가장자리가 흐릿하게 사라져야 합니다. 딱 떨어지면 스플랫이 아니라 다른 게 그려진 것
 2. **아래 문장**에 「스플랫 1개」가 뜬다 — 「실패」면 에러 내용을 읽는다
-3. **기기를 돌리면 어느 각도에서 납작해진다** — 럭비공이니까요. 이게 「타원체가 맞다」의 결정적 증거입니다
+3. **좌우로 드래그하면 길쭉한 얼룩이 동그래졌다 길어졌다 한다** — 이게 「타원체가 맞다」의 결정적 증거입니다
+   > ⚠️ **처음에 「기기를 돌리면」이라고 적었던 것은 틀렸습니다 (2026-09-04 정정).** `.virtual` 카메라는 **고정**이라 폰을 돌려도 아무 일도 안 일어납니다. 시점을 바꾸려면 카메라나 엔티티를 직접 돌려야 합니다
 4. **색이 주황빛**이다 (`sh` 를 (1.0, 0.4, 0.2) 로 줬으니)
 
 **안 보이면 볼 곳, 순서대로**
@@ -226,6 +262,18 @@ Section("첫 타원체") {
 | offset 이 어긋남 | 표의 다섯 숫자(0·12·24·40·44)가 코드와 같나 |
 | 너무 작다 / 크다 | `scale` 을 0.1 → 1.0 으로 훑어 본다 |
 | 카메라 밖 | `position` 이 (0,0,0) 인가 |
+
+### 왜 «평면» 처럼 보이나 — 정상입니다
+
+**3D 가우시안을 2D 화면에 투영하면 정확히 2D 가우시안(타원)이 됩니다.** 근사가 아니라 수학적으로 그렇습니다. 그래서 **한 시점에서 본 스플랫 하나는 언제나 납작한 얼룩**입니다.
+
+입체감은 스플랫 하나가 아니라 둘에서 옵니다 — ① **시점이 바뀔 때 타원의 모양이 변하는 것** ② **수많은 스플랫이 깊이 순으로 겹치는 것.** 3단계에는 둘 다 없으니 납작해 보이는 게 맞습니다.
+
+### 잘린 사각형이 보이는 것도 정상입니다
+
+가우시안은 수학적으로 0 이 되지 않아 **어딘가에서 잘라야** 합니다. 프레임워크에 그 반경을 정하는 손잡이는 **없습니다** — 문서가 「개발자가 만지는 셰이더가 없다」고 못 박습니다. `opacity` 를 낮추면 자르는 지점의 색이 옅어져 경계가 묻힙니다.
+
+**Apple 예제(토끼)도 똑같이 자릅니다.** 다만 스플랫이 수십만 개라 하나의 경계를 볼 수가 없습니다. 지금은 크고 진한 셋이 따로 떠 있는 **실전에 없는 조건**이라 보이는 것입니다.
 
 ### ⭐️ 즉흥 실험 — `scaleActivation` 을 `.exponential` 로
 

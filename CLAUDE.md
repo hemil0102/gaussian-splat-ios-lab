@@ -78,7 +78,7 @@
 - **iOS 27 이상, 실제 iPhone 에서 테스트.** 시뮬레이터는 성능이 실제와 무관합니다
 - **Apple7 GPU 패밀리 이상** — iPhone 12(A14) 가 하한선
 - Swift / SwiftUI / RealityKit, Xcode 27
-- AR 없이 `RealityView` 만 사용
+- **3단계부터 `RealityView` + `.spatialTracking`(AR)** — 0~2단계는 AR 없이. 시점을 바꿔야 스플랫이 입체로 보이기 때문 (2026-09-04 변경)
 
 **폴더 구조**
 
